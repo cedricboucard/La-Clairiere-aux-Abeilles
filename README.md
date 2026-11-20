@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./ClairiereAuxAbeilles/app/src/main/res/drawable-nodpi/ic_launcher_art.png" alt="Icône La Clairière aux abeilles" width="140" />
+</p>
+
 # La Clairière aux abeilles
 
 Un jeu mobile botanique et apicole paisible développé en **Kotlin** & **Jetpack Compose**, inspiré du prototype web [La clairière aux abeilles.html](./La%20clairi%C3%A8re%20aux%20abeilles.html).
