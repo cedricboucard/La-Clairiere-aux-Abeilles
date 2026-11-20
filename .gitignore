@@ -1,0 +1,9 @@
+# Gradle / Android
+ClairiereAuxAbeilles/.gradle/
+ClairiereAuxAbeilles/build/
+ClairiereAuxAbeilles/app/build/
+ClairiereAuxAbeilles/local.properties
+ClairiereAuxAbeilles/.idea/
+*.iml
+.DS_Store
+*.log

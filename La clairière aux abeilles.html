@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>La Clairière aux abeilles</title>
+  <style>
+    :root {
+      --bg-card: rgba(252, 248, 238, 0.88);
+      --border-card: rgba(168, 140, 96, 0.35);
+      --text-main: #3b3126;
+      --text-muted: #70604c;
+      --amber: #e3962d;
+      --amber-glow: #ffca63;
+      --leaf: #5f8754;
+      --water: #5e9aa6;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1f2b22;
+      font-family: "Georgia", "Palatino Linotype", "Book Antiqua", serif;
+      color: var(--text-main);
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    /* HUD */
+    .hud-top-left {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .hud-top-right {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .pill {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 13px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 999px;
+      box-shadow: 0 4px 16px rgba(20, 24, 18, 0.16);
+      backdrop-filter: blur(8px);
+      font-size: 14px;
+      color: var(--text-main);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .icon-btn {
+      pointer-events: auto;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border-card);
+      background: var(--bg-card);
+      box-shadow: 0 4px 14px rgba(20, 24, 18, 0.16);
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      color: var(--text-main);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(20, 24, 18, 0.22);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+    }
+
+    .season-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .hud-bottom {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+      width: min(92vw, 680px);
+      pointer-events: none;
+    }
+
+    .whisper {
+      background: rgba(38, 34, 28, 0.78);
+      color: #fbf5e6;
+      padding: 9px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      line-height: 1.35;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 224, 158, 0.25);
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.25);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      max-width: 100%;
+    }
+
+    .whisper.hidden {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    .seed-bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 999px;
+      box-shadow: 0 6px 20px rgba(20, 24, 18, 0.2);
+      backdrop-filter: blur(8px);
+      max-width: 92vw;
+      overflow-x: auto;
+    }
+
+    .seed-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text-main);
+      white-space: nowrap;
+      transition: all 0.18s ease;
+    }
+
+    .seed-chip:hover {
+      background: rgba(227, 150, 45, 0.14);
+    }
+
+    .seed-chip.active {
+      background: rgba(227, 150, 45, 0.24);
+      border-color: var(--amber);
+      font-weight: bold;
+    }
+
+    .seed-swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.2);
+      flex-shrink: 0;
+    }
+
+    .carnet-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 11;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #fcf6e8;
+      border: 1px solid #b58d52;
+      box-shadow: 0 6px 20px rgba(20, 24, 18, 0.25);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      color: #493824;
+      transition: transform 0.18s ease;
+    }
+
+    .carnet-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .badge-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #e26d38;
+      box-shadow: 0 0 8px #e26d38;
+      display: none;
+    }
+
+    .badge-dot.visible {
+      display: inline-block;
+    }
+
+    /* Carnet Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(22, 26, 20, 0.58);
+      backdrop-filter: blur(5px);
+      display: none;
+      place-items: center;
+      z-index: 30;
+      padding: 18px;
+    }
+
+    .modal-backdrop.open {
+      display: grid;
+    }
+
+    .carnet-book {
+      width: min(860px, 100%);
+      max-height: 88vh;
+      overflow-y: auto;
+      background: #fbf4e4;
+      background-image: radial-gradient(rgba(166, 134, 84, 0.08) 1px, transparent 0);
+      background-size: 18px 18px;
+      border: 2px solid #9d7b4a;
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      padding: 24px 26px;
+      color: var(--text-main);
+    }
+
+    .carnet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(157, 123, 74, 0.35);
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+
+    .carnet-header h2 {
+      margin: 0;
+      font-size: 23px;
+      color: #4a3723;
+    }
+
+    .carnet-close {
+      background: transparent;
+      border: 1px solid rgba(157, 123, 74, 0.45);
+      border-radius: 999px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .carnet-section-title {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 18px 0 10px;
+    }
+
+    .places-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 10px;
+    }
+
+    .place-card {
+      padding: 11px 13px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(157, 123, 74, 0.25);
+      font-size: 13px;
+    }
+
+    .place-card.locked {
+      opacity: 0.52;
+      font-style: italic;
+    }
+
+    .place-card strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #4a3723;
+    }
+
+    .plants-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .plant-card {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(157, 123, 74, 0.3);
+      transition: transform 0.16s ease, border-color 0.16s ease;
+    }
+
+    .plant-card.unlocked {
+      cursor: pointer;
+    }
+
+    .plant-card.unlocked:hover {
+      transform: translateY(-2px);
+      border-color: var(--amber);
+    }
+
+    .plant-card.locked {
+      opacity: 0.48;
+      filter: grayscale(0.7);
+    }
+
+    .plant-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: #f2e8d1;
+      border: 1px solid rgba(157, 123, 74, 0.25);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .plant-info h4 {
+      margin: 0 0 3px;
+      font-size: 15px;
+    }
+
+    .plant-info p {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--text-muted);
+    }
+
+    .plant-tag {
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(95, 135, 84, 0.15);
+      color: #3f6336;
+    }
+
+    @media (max-width: 680px) {
+      .hud-bottom {
+        bottom: 66px;
+      }
+      .carnet-btn {
+        bottom: 14px;
+        right: 14px;
+      }
+      .pill {
+        font-size: 12.5px;
+        padding: 6px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <div class="hud-top-left">
+    <div class="pill" id="season-pill" title="Cycle des saisons">
+      <span class="season-dot" id="season-dot"></span>
+      <span id="season-label">Printemps</span>
+    </div>
+    <div class="pill" title="Graines prêtes à semer">
+      <span>🌰</span>
+      <span><strong id="seed-count">0</strong> graines</span>
+    </div>
+    <div class="pill" title="Fleurs écloses dans la clairière">
+      <span>🌸</span>
+      <span><strong id="flower-count">0</strong> fleurs</span>
+    </div>
+    <div class="pill" title="Abeilles actives">
+      <span>🐝</span>
+      <span><strong id="bee-count">3</strong></span>
+    </div>
+  </div>
+
+  <div class="hud-top-right">
+    <button class="icon-btn" id="btn-sound" title="Activer / couper les sons doux">🔊</button>
+    <button class="icon-btn" id="btn-reset" title="Recommencer une nouvelle clairière">↺</button>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="whisper" id="whisper-box">
+      Cueille un fruit ambré sur une branche basse de l’arbre.
+    </div>
+    <div class="seed-bar" id="seed-bar" style="display: none;"></div>
+  </div>
+
+  <button class="carnet-btn" id="btn-carnet">
+    <span>📖 Mon Carnet</span>
+    <span class="badge-dot" id="carnet-badge"></span>
+  </button>
+
+  <div class="modal-backdrop" id="carnet-modal">
+    <div class="carnet-book">
+      <div class="carnet-header">
+        <h2>📖 Carnet du Petit Robot</h2>
+        <button class="carnet-close" id="btn-close-carnet">Fermer</button>
+      </div>
+
+      <p style="margin-top:0; font-size:14px; color:#695843; line-height:1.5;">
+        Les abeilles tracent les chemins de la forêt. Suis leur vol, ouvre de nouveaux lieux et récolte les espèces de l’autre rive pour enrichir ta clairière au fil des saisons.
+      </p>
+
+      <div class="carnet-section-title">Lieux découverts</div>
+      <div class="places-grid" id="places-grid"></div>
+
+      <div class="carnet-section-title">Flore de la clairière (clique sur une plante découverte pour la semer)</div>
+      <div class="plants-grid" id="plants-grid"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // =========================================================================
+  // CONFIGURATION & MONDE LOGIQUE (1400 x 820)
+  // =========================================================================
+  const WORLD_W = 1400;
+  const WORLD_H = 820;
+
+  const canvas = document.getElementById("game-canvas");
+  const ctx = canvas.getContext("2d");
+
+  // Audio doux procédural (Web Audio API)
+  const Sound = {
+    ctx: null,
+    enabled: true,
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume().catch(() => {});
+      }
+    },
+    tone(freq, dur = 0.22, type = "sine", vol = 0.07, delay = 0) {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime + delay;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(vol, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.03);
+    },
+    pick() {
+      this.tone(523.25, 0.18, "triangle", 0.08, 0);
+      this.tone(659.25, 0.22, "sine", 0.07, 0.07);
+    },
+    plant() {
+      this.tone(392, 0.16, "sine", 0.06, 0);
+      this.tone(493.88, 0.2, "triangle", 0.06, 0.06);
+    },
+    bloom() {
+      this.tone(587.33, 0.25, "sine", 0.05, 0);
+      this.tone(783.99, 0.35, "sine", 0.045, 0.08);
+    },
+    discover() {
+      this.tone(440, 0.24, "triangle", 0.07, 0);
+      this.tone(554.37, 0.26, "triangle", 0.07, 0.11);
+      this.tone(659.25, 0.45, "sine", 0.08, 0.22);
+    },
+    repair() {
+      this.tone(293.66, 0.12, "square", 0.03, 0);
+      this.tone(349.23, 0.14, "square", 0.03, 0.14);
+      this.tone(523.25, 0.35, "triangle", 0.07, 0.28);
+    }
+  };
+
+  // =========================================================================
+  // DONNÉES DES PLANTES & SAISONS
+  // =========================================================================
+  const SEASONS = [
+    {
+      id: "spring",
+      name: "Printemps",
+      color: "#7ec86f",
+      skyTop: "#cde8d5",
+      skyBottom: "#e9f3df",
+      grass1: "#7da865",
+      grass2: "#6b9656",
+      treeLeaf1: "#6fa159",
+      treeLeaf2: "#8cc06f",
+      bgTree: "#4b7148",
+      water1: "#6aa8b3",
+      water2: "#4d8694",
+      particleType: "petal"
+    },
+    {
+      id: "summer",
+      name: "Été",
+      color: "#e6b83e",
+      skyTop: "#d7ecc8",
+      skyBottom: "#f5f0cf",
+      grass1: "#709d52",
+      grass2: "#5d8743",
+      treeLeaf1: "#588b48",
+      treeLeaf2: "#79ad59",
+      bgTree: "#3f613b",
+      water1: "#5b9ead",
+      water2: "#407d8e",
+      particleType: "firefly"
+    },
+    {
+      id: "autumn",
+      name: "Automne",
+      color: "#d97838",
+      skyTop: "#e8cfb2",
+      skyBottom: "#f3dec2",
+      grass1: "#9b9352",
+      grass2: "#837b43",
+      treeLeaf1: "#c77237",
+      treeLeaf2: "#e09a45",
+      bgTree: "#704d34",
+      water1: "#5f8c94",
+      water2: "#466e78",
+      particleType: "leaf"
+    },
+    {
+      id: "winter",
+      name: "Hiver",
+      color: "#9bc4de",
+      skyTop: "#c8dae8",
+      skyBottom: "#e5eff5",
+      grass1: "#9bb3ab",
+      grass2: "#849e98",
+      treeLeaf1: "#6d8c85",
+      treeLeaf2: "#95b2ab",
+      bgTree: "#546b6c",
+      water1: "#79a4b5",
+      water2: "#5a8396",
+      particleType: "snow"
+    }
+  ];
+
+  const SPECIES = {
+    ambre: {
+      id: "ambre",
+      name: "Bouton d’Ambre",
+      zone: "clairiere",
+      zoneLabel: "Sous l'arbre",
+      petalColor: "#f7bc42",
+      centerColor: "#b55d17",
+      petals: 6,
+      desc: "Née des fruits de l'arbre premier, elle attire aussitôt les abeilles.",
+      bonus: "Butinage classique"
+    },
+    trefle: {
+      id: "trefle",
+      name: "Trèfle Rose",
+      zone: "clairiere",
+      zoneLabel: "Clairière",
+      petalColor: "#e88da4",
+      centerColor: "#fff2c6",
+      petals: 8,
+      desc: "Doux tapis fleuri qui s'étend à mesure que les abeilles explorent l'herbe.",
+      bonus: "Attire de nouvelles abeilles"
+    },
+    iris: {
+      id: "iris",
+      name: "Iris des Berges",
+      zone: "mare",
+      zoneLabel: "Berge de la mare",
+      petalColor: "#7885e0",
+      centerColor: "#ffd66b",
+      petals: 5,
+      desc: "Fleur élancée aimant l'humidité fraîche du bord de l'eau.",
+      bonus: "Accélère la pousse des fruits"
+    },
+    nenuphar: {
+      id: "nenuphar",
+      name: "Nénuphar Étoilé",
+      zone: "eau",
+      zoneLabel: "Sur la mare",
+      petalColor: "#fdf4df",
+      centerColor: "#f0a932",
+      petals: 8,
+      desc: "Flotte paisiblement sur l'eau calme et offre un repos aux abeilles.",
+      bonus: "Fleurit la surface de la mare"
+    },
+    menthe: {
+      id: "menthe",
+      name: "Menthe Sauvage",
+      zone: "any",
+      zoneLabel: "L'autre rive",
+      petalColor: "#8ed4b2",
+      centerColor: "#488f70",
+      petals: 7,
+      desc: "Plante parfumée cueillie de l'autre côté de la passerelle.",
+      bonus: "Double l'élan pollinisateur"
+    },
+    campanule: {
+      id: "campanule",
+      name: "Campanule Lunaire",
+      zone: "any",
+      zoneLabel: "L'autre rive",
+      petalColor: "#9cc5f7",
+      centerColor: "#fff6cc",
+      petals: 5,
+      desc: "Ses clochettes luisent doucement même lorsque l'hiver recouvre la forêt.",
+      bonus: "Rayonne en toute saison"
+    },
+    bruyere: {
+      id: "bruyere",
+      name: "Bruyère Dorée",
+      zone: "any",
+      zoneLabel: "L'autre rive",
+      petalColor: "#d97bb5",
+      centerColor: "#ffcf59",
+      petals: 6,
+      desc: "Plante rustique de l'autre rive qui garde la clairière vivante toute l'année.",
+      bonus: "Miel abondant d'automne et d'hiver"
+    }
+  };
+
+  // =========================================================================
+  // ÉTAT DU JEU
+  // =========================================================================
+  let state = null;
+  let hoveredTarget = null;
+  let lastTime = performance.now();
+  let viewTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+
+  function createInitialState() {
+    // Emplacements du jardin (débloqués progressivement ou liés aux zones)
+    const spots = [
+      // Au pied du tronc (ouverts dès le départ)
+      { id: "s1", x: 315, y: 505, zone: "clairiere", unlocked: true, flower: null },
+      { id: "s2", x: 390, y: 538, zone: "clairiere", unlocked: true, flower: null },
+      { id: "s3", x: 475, y: 515, zone: "clairiere", unlocked: true, flower: null },
+      { id: "s4", x: 255, y: 470, zone: "clairiere", unlocked: true, flower: null },
+
+      // Clairière élargie (se révèlent quand les abeilles visitent les premières fleurs)
+      { id: "s5", x: 205, y: 535, zone: "clairiere", unlocked: false, revealAt: 1, flower: null },
+      { id: "s6", x: 335, y: 595, zone: "clairiere", unlocked: false, revealAt: 1, flower: null },
+      { id: "s7", x: 455, y: 592, zone: "clairiere", unlocked: false, revealAt: 2, flower: null },
+      { id: "s8", x: 548, y: 545, zone: "clairiere", unlocked: false, revealAt: 2, flower: null },
+      { id: "s9", x: 175, y: 425, zone: "clairiere", unlocked: false, revealAt: 3, flower: null },
+      { id: "s10", x: 560, y: 440, zone: "clairiere", unlocked: false, revealAt: 3, flower: null },
+      { id: "s11", x: 265, y: 635, zone: "clairiere", unlocked: false, revealAt: 4, flower: null },
+      { id: "s12", x: 525, y: 642, zone: "clairiere", unlocked: false, revealAt: 4, flower: null },
+
+      // Berge de la mare (ouverts dès que les fougères sont dégagées)
+      { id: "m1", x: 750, y: 430, zone: "mare", unlocked: false, flower: null },
+      { id: "m2", x: 745, y: 525, zone: "mare", unlocked: false, flower: null },
+      { id: "m3", x: 805, y: 598, zone: "mare", unlocked: false, flower: null },
+      { id: "m4", x: 910, y: 618, zone: "mare", unlocked: false, flower: null },
+      { id: "m5", x: 830, y: 345, zone: "mare", unlocked: false, flower: null },
+      { id: "m6", x: 935, y: 340, zone: "mare", unlocked: false, flower: null },
+
+      // Sur l'eau de la mare (Nénuphars)
+      { id: "w1", x: 855, y: 455, zone: "eau", unlocked: false, flower: null },
+      { id: "w2", x: 925, y: 510, zone: "eau", unlocked: false, flower: null },
+
+      // L'autre rive (ouverts après réparation de la passerelle)
+      { id: "r1", x: 1175, y: 410, zone: "rive", unlocked: false, flower: null },
+      { id: "r2", x: 1215, y: 505, zone: "rive", unlocked: false, flower: null },
+      { id: "r3", x: 1285, y: 445, zone: "rive", unlocked: false, flower: null },
+      { id: "r4", x: 1190, y: 595, zone: "rive", unlocked: false, flower: null },
+      { id: "r5", x: 1295, y: 565, zone: "rive", unlocked: false, flower: null }
+    ];
+
+    // Fleurs de l'arbre + fruits ambrés initiaux sur les branches basses
+    const branches = [
+      { id: "b1", x: 295, y: 300, state: "ripe", progress: 1, low: true },
+      { id: "b2", x: 468, y: 295, state: "ripe", progress: 1, low: true },
+      { id: "b3", x: 350, y: 225, state: "growing", progress: 0.55, low: false },
+      { id: "b4", x: 430, y: 205, state: "blossom", progress: 0, low: false },
+      { id: "b5", x: 265, y: 235, state: "blossom", progress: 0, low: false },
+      { id: "b6", x: 500, y: 245, state: "blossom", progress: 0, low: false },
+      { id: "b7", x: 388, y: 155, state: "blossom", progress: 0, low: false }
+    ];
+
+    // Plantes sauvages à découvrir sur l'autre rive
+    const wildPlants = [
+      { id: "wp_menthe", species: "menthe", x: 1210, y: 345, collected: false },
+      { id: "wp_campanule", species: "campanule", x: 1300, y: 380, collected: false },
+      { id: "wp_bruyere", species: "bruyere", x: 1255, y: 635, collected: false }
+    ];
+
+    // Abeilles initiales autour des branches
+    const bees = [];
+    for (let i = 0; i < 3; i++) {
+      bees.push(createBee(380 + (i - 1) * 45, 220 + i * 20, i));
+    }
+
+    return {
+      time: 0,
+      seasonIndex: 0,
+      seasonProgress: 0,
+      seasonDuration: 68, // secondes par saison pour voir la forêt évoluer paisiblement
+      seeds: 0,
+      selectedSpecies: "ambre",
+      discoveredSpecies: ["ambre"],
+      carnetBadge: false,
+      fernsCleared: false,
+      fernsHinted: false,
+      bridgeRepaired: false,
+      pollinations: 0,
+      guideStep: 0, // 0: pick fruit, 1: plant flower, 2: watch bee & clear ferns, 3: pond open, 4: bridge repaired / free play
+      robot: {
+        x: 375,
+        y: 472,
+        targetX: 375,
+        targetY: 472,
+        facing: 1,
+        bob: 0,
+        action: null, // { type, target, timer, duration }
+        queue: [],
+        blinkTimer: 2.5
+      },
+      spots,
+      branches,
+      wildPlants,
+      bees,
+      floatingTexts: [],
+      ambientParticles: initAmbientParticles()
+    };
+  }
+
+  function createBee(x, y, id) {
+    return {
+      id,
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      angle: Math.random() * Math.PI * 2,
+      state: "orbitTree", // orbitTree | toFlower | pollinate | toFern | toTree | scout
+      target: null,
+      timer: 0,
+      hasPollen: false,
+      trail: [],
+      wingPhase: Math.random() * 10
+    };
+  }
+
+  function initAmbientParticles() {
+    const arr = [];
+    for (let i = 0; i < 36; i++) {
+      arr.push({
+        x: Math.random() * WORLD_W,
+        y: Math.random() * WORLD_H,
+        vx: (Math.random() - 0.5) * 18,
+        vy: 10 + Math.random() * 18,
+        size: 2.5 + Math.random() * 3.5,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+    return arr;
+  }
+
+  // =========================================================================
+  // SAUVEGARDE DOUCE
+  // =========================================================================
+  const SAVE_KEY = "clairiere_abeilles_v1";
+
+  function saveGame() {
+    try {
+      const compact = {
+        seasonIndex: state.seasonIndex,
+        seasonProgress: state.seasonProgress,
+        seeds: state.seeds,
+        selectedSpecies: state.selectedSpecies,
+        discoveredSpecies: state.discoveredSpecies,
+        fernsCleared: state.fernsCleared,
+        fernsHinted: state.fernsHinted,
+        bridgeRepaired: state.bridgeRepaired,
+        pollinations: state.pollinations,
+        guideStep: state.guideStep,
+        spots: state.spots.map(s => ({ id: s.id, unlocked: s.unlocked, flower: s.flower })),
+        branches: state.branches.map(b => ({ id: b.id, state: b.state, progress: b.progress })),
+        wildPlants: state.wildPlants.map(w => ({ id: w.id, collected: w.collected })),
+        beeCount: state.bees.length
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(compact));
+    } catch (_) {}
+  }
+
+  function loadGame() {
+    state = createInitialState();
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.spots)) return;
+      state.seasonIndex = data.seasonIndex ?? 0;
+      state.seasonProgress = data.seasonProgress ?? 0;
+      state.seeds = data.seeds ?? 0;
+      state.selectedSpecies = data.selectedSpecies || "ambre";
+      state.discoveredSpecies = data.discoveredSpecies || ["ambre"];
+      state.fernsCleared = !!data.fernsCleared;
+      state.fernsHinted = !!data.fernsHinted;
+      state.bridgeRepaired = !!data.bridgeRepaired;
+      state.pollinations = data.pollinations ?? 0;
+      state.guideStep = data.guideStep ?? 0;
+
+      data.spots.forEach(savedSpot => {
+        const target = state.spots.find(s => s.id === savedSpot.id);
+        if (target) {
+          target.unlocked = savedSpot.unlocked;
+          target.flower = savedSpot.flower;
+        }
+      });
+      data.branches?.forEach(sb => {
+        const target = state.branches.find(b => b.id === sb.id);
+        if (target) {
+          target.state = sb.state;
+          target.progress = sb.progress;
+        }
+      });
+      data.wildPlants?.forEach(sw => {
+        const target = state.wildPlants.find(w => w.id === sw.id);
+        if (target) target.collected = sw.collected;
+      });
+      const targetBees = Math.min(16, Math.max(3, data.beeCount || 3));
+      while (state.bees.length < targetBees) {
+        state.bees.push(createBee(380, 210, state.bees.length));
+      }
+    } catch (_) {
+      state = createInitialState();
+    }
+  }
+
+  // =========================================================================
+  // LOGIQUE DU ROBOT & INTERACTIONS
+  // =========================================================================
+  function getFlowerCount() {
+    return state.spots.filter(s => s.flower !== null).length;
+  }
+
+  function getBloomedFlowers() {
+    return state.spots.filter(s => s.flower && s.flower.bloom >= 1);
+  }
+
+  function addFloatingText(x, y, text, color = "#fff6d6") {
+    state.floatingTexts.push({ x, y, text, color, life: 1.6, maxLife: 1.6 });
+  }
+
+  function unlockSpecies(speciesId) {
+    if (!state.discoveredSpecies.includes(speciesId)) {
+      state.discoveredSpecies.push(speciesId);
+      state.carnetBadge = true;
+      state.selectedSpecies = speciesId;
+      updateUI();
+    }
+  }
+
+  function checkAutoUnlocks() {
+    const flowers = getFlowerCount();
+    state.spots.forEach(s => {
+      if (s.zone === "clairiere" && !s.unlocked && s.revealAt && flowers >= s.revealAt) {
+        s.unlocked = true;
+      }
+    });
+    if (flowers >= 2 && !state.discoveredSpecies.includes("trefle")) {
+      unlockSpecies("trefle");
+      setWhisper("Le trèfle rose s'invite dans l'herbe ! Consulte ton Carnet ou choisis ta graine en bas.");
+    }
+  }
+
+  function robotGoTo(x, y, actionObj) {
+    const r = state.robot;
+    r.queue = [];
+    // Si le robot traverse vers l'autre rive ou en revient, on passe par la passerelle !
+    const crossFromLeft = r.x < 1040 && x >= 1040;
+    const crossFromRight = r.x >= 1040 && x < 1040;
+    if ((crossFromLeft || crossFromRight) && state.bridgeRepaired) {
+      r.queue.push({ x: 990, y: 455, action: null });
+      r.queue.push({ x: 1125, y: 455, action: null });
+    }
+    // Si on contourne la mare pour aller au nord/sud de la berge
+    r.queue.push({ x, y, action: actionObj });
+    r.action = null;
+  }
+
+  function handleWorldClick(wx, wy) {
+    Sound.init();
+
+    // 1. Cliquer sur un fruit mûr de l'arbre
+    for (const b of state.branches) {
+      if (b.state === "ripe" && Math.hypot(wx - b.x, wy - (b.y + 10)) < 32) {
+        robotGoTo(b.x, Math.min(480, Math.max(415, b.y + 160)), {
+          type: "pick",
+          target: b,
+          duration: 0.45
+        });
+        return;
+      }
+    }
+
+    // 2. Cliquer sur les fougères pour dégager la mare
+    if (!state.fernsCleared && wx > 605 && wx < 735 && wy > 365 && wy < 540) {
+      robotGoTo(615, 455, {
+        type: "clearFerns",
+        target: null,
+        duration: 1.1
+      });
+      return;
+    }
+
+    // 3. Cliquer sur la passerelle endommagée
+    if (state.fernsCleared && !state.bridgeRepaired && wx > 990 && wx < 1130 && wy > 395 && wy < 515) {
+      robotGoTo(985, 458, {
+        type: "repairBridge",
+        target: null,
+        duration: 1.4
+      });
+      return;
+    }
+
+    // 4. Cliquer sur une plante sauvage de l'autre rive
+    if (state.bridgeRepaired) {
+      for (const wp of state.wildPlants) {
+        if (!wp.collected && Math.hypot(wx - wp.x, wy - wp.y) < 38) {
+          robotGoTo(wp.x - 24, wp.y + 10, {
+            type: "collectWild",
+            target: wp,
+            duration: 0.85
+          });
+          return;
+        }
+      }
+    }
+
+    // 5. Cliquer sur un emplacement de jardin pour semer
+    let chosenSpot = null;
+    let minDist = 42;
+    for (const s of state.spots) {
+      if (!s.unlocked || s.flower) continue;
+      if (s.zone === "rive" && !state.bridgeRepaired) continue;
+      const d = Math.hypot(wx - s.x, wy - s.y);
+      if (d < minDist) {
+        minDist = d;
+        chosenSpot = s;
+      }
+    }
+
+    if (chosenSpot) {
+      if (state.seeds <= 0) {
+        setWhisper("Il te faut des graines : touche d'abord un fruit ambré mûr sur l'arbre.");
+        addFloatingText(chosenSpot.x, chosenSpot.y - 18, "Pas de graines", "#ffd4a8");
+        return;
+      }
+      const speciesToPlant = pickAppropriateSpecies(chosenSpot);
+      const standX = chosenSpot.zone === "eau" ? chosenSpot.x - 75 : chosenSpot.x - 16;
+      const standY = chosenSpot.zone === "eau" ? chosenSpot.y : chosenSpot.y + 8;
+      robotGoTo(standX, standY, {
+        type: "plant",
+        target: chosenSpot,
+        species: speciesToPlant,
+        duration: 0.45
+      });
+      return;
+    }
+
+    // 6. Sinon, promener simplement le petit robot dans les zones accessibles
+    const clampedX = Math.max(120, Math.min(state.fernsCleared ? (state.bridgeRepaired ? 1320 : 990) : 605, wx));
+    const clampedY = Math.max(365, Math.min(685, wy));
+    // Éviter de marcher au milieu de la mare
+    const inPond = clampedX > 780 && clampedX < 995 && clampedY > 365 && clampedY < 580;
+    if (!inPond) {
+      robotGoTo(clampedX, clampedY, null);
+    }
+  }
+
+  function pickAppropriateSpecies(spot) {
+    if (spot.zone === "eau") return "nenuphar";
+    const sel = state.selectedSpecies;
+    const sp = SPECIES[sel];
+    if (spot.zone === "mare" && !["iris", "menthe", "campanule", "bruyere"].includes(sel)) {
+      if (state.discoveredSpecies.includes("iris")) return "iris";
+    }
+    if (sp && (sp.zone === "any" || sp.zone === spot.zone || spot.zone === "rive" || spot.zone === "mare")) {
+      return sel;
+    }
+    return "ambre";
+  }
+
+  function completeRobotAction(act) {
+    if (!act) return;
+
+    if (act.type === "pick") {
+      const b = act.target;
+      if (b.state === "ripe") {
+        b.state = "blossom";
+        b.progress = 0;
+        state.seeds += 2;
+        Sound.pick();
+        addFloatingText(b.x, b.y - 10, "+2 graines", "#ffe28a");
+        if (state.guideStep === 0) {
+          state.guideStep = 1;
+          setWhisper("Choisis maintenant un emplacement au pied du tronc pour semer tes graines.");
+        }
+        saveGame();
+        updateUI();
+      }
+    } else if (act.type === "plant") {
+      const spot = act.target;
+      if (!spot.flower && state.seeds > 0) {
+        state.seeds -= 1;
+        spot.flower = {
+          species: act.species,
+          bloom: 0.05,
+          swayOffset: Math.random() * Math.PI * 2,
+          pollinatedCount: 0
+        };
+        Sound.plant();
+        addFloatingText(spot.x, spot.y - 18, SPECIES[act.species].name, "#d8f5c4");
+        if (state.guideStep === 1) {
+          state.guideStep = 2;
+          setWhisper("Patiente un instant… Quand la fleur s'ouvre, regarde où s'envole l'abeille.");
+        }
+        checkAutoUnlocks();
+        saveGame();
+        updateUI();
+      }
+    } else if (act.type === "clearFerns") {
+      state.fernsCleared = true;
+      state.fernsHinted = true;
+      Sound.discover();
+      state.spots.forEach(s => {
+        if (s.zone === "mare" || s.zone === "eau") s.unlocked = true;
+      });
+      unlockSpecies("iris");
+      unlockSpecies("nenuphar");
+      addFloatingText(680, 420, "La Mare découverte !", "#b8f2ff");
+      if (state.guideStep <= 3) {
+        state.guideStep = 3;
+        setWhisper("Tu as découvert la mare ! Fleuris la berge ou récolte les fruits mûrs sous l'arbre.");
+      }
+      saveGame();
+      updateUI();
+    } else if (act.type === "repairBridge") {
+      state.bridgeRepaired = true;
+      Sound.repair();
+      state.spots.forEach(s => {
+        if (s.zone === "rive") s.unlocked = true;
+      });
+      addFloatingText(1065, 420, "Passerelle réparée !", "#ffe8a6");
+      state.guideStep = 4;
+      setWhisper("La passerelle mène à l'autre rive ! Approche les plantes sauvages pour les ajouter à ton carnet.");
+      saveGame();
+      updateUI();
+    } else if (act.type === "collectWild") {
+      const wp = act.target;
+      if (!wp.collected) {
+        wp.collected = true;
+        Sound.discover();
+        unlockSpecies(wp.species);
+        state.seeds += 2;
+        addFloatingText(wp.x, wp.y - 20, `${SPECIES[wp.species].name} ajoutée au carnet !`, "#fff1b8");
+        setWhisper(`${SPECIES[wp.species].name} rejoint ton carnet ! Tu peux maintenant la semer partout dans la clairière.`);
+        saveGame();
+        updateUI();
+      }
+    }
+  }
+
+  // =========================================================================
+  // MISE À JOUR : ABEILLES, FLEURS, FRUITS & SAISONS
+  // =========================================================================
+  function updateSimulation(dt) {
+    state.time += dt;
+
+    // 1. Saisons
+    state.seasonProgress += dt / state.seasonDuration;
+    if (state.seasonProgress >= 1) {
+      state.seasonProgress -= 1;
+      state.seasonIndex = (state.seasonIndex + 1) % SEASONS.length;
+      const season = SEASONS[state.seasonIndex];
+      setWhisper(`La forêt entre doucement en ${season.name.toLowerCase()}…`);
+      updateUI();
+      saveGame();
+    }
+
+    // 2. Croissance des fleurs et des fruits
+    let irisCount = 0;
+    let mentheCount = 0;
+    state.spots.forEach(s => {
+      if (!s.flower) return;
+      if (s.flower.bloom < 1) {
+        const wasClosed = s.flower.bloom < 1;
+        s.flower.bloom = Math.min(1, s.flower.bloom + dt * 0.42);
+        if (wasClosed && s.flower.bloom >= 1) {
+          Sound.bloom();
+          if (state.guideStep === 2 && !state.fernsHinted) {
+            setWhisper("Une abeille vient butiner ! Suis son trajet jusqu'aux fougères…");
+          }
+        }
+      }
+      if (s.flower.species === "iris") irisCount++;
+      if (s.flower.species === "menthe") mentheCount++;
+    });
+
+    const fruitSpeedBoost = 1 + irisCount * 0.16 + mentheCount * 0.22;
+    state.branches.forEach(b => {
+      if (b.state === "growing") {
+        b.progress += dt * 0.085 * fruitSpeedBoost;
+        if (b.progress >= 1) {
+          b.progress = 1;
+          b.state = "ripe";
+          addFloatingText(b.x, b.y - 8, "Fruit mûr !", "#ffd670");
+        }
+      }
+    });
+
+    // 3. Robot déplacement & file d'actions
+    const r = state.robot;
+    r.blinkTimer -= dt;
+    if (r.blinkTimer <= -0.15) r.blinkTimer = 2.4 + Math.random() * 2.5;
+
+    if (r.action) {
+      r.action.timer += dt;
+      if (r.action.timer >= r.action.duration) {
+        const finished = r.action;
+        r.action = null;
+        completeRobotAction(finished);
+      }
+    } else if (r.queue.length > 0) {
+      const next = r.queue[0];
+      const dx = next.x - r.x;
+      const dy = next.y - r.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 4) {
+        const speed = 215;
+        r.x += (dx / dist) * speed * dt;
+        r.y += (dy / dist) * speed * dt;
+        r.bob += dt * 14;
+        if (Math.abs(dx) > 2) r.facing = dx >= 0 ? 1 : -1;
+      } else {
+        r.x = next.x;
+        r.y = next.y;
+        r.queue.shift();
+        if (next.action) {
+          r.action = { ...next.action, timer: 0 };
+        }
+      }
+    } else {
+      r.bob = 0;
+    }
+
+    // 4. Abeilles & trajectoires
+    const bloomed = getBloomedFlowers();
+    const desiredBees = Math.min(16, 3 + Math.floor(bloomed.length * 0.65));
+    while (state.bees.length < desiredBees) {
+      state.bees.push(createBee(380 + (Math.random() - 0.5) * 80, 210, state.bees.length));
+    }
+
+    state.bees.forEach((bee, idx) => {
+      bee.wingPhase += dt * 38;
+      bee.timer -= dt;
+
+      // Enregistrer la trace de vol
+      if (Math.random() < 0.55) {
+        bee.trail.push({ x: bee.x, y: bee.y, life: 1.0 });
+        if (bee.trail.length > 26) bee.trail.shift();
+      }
+      for (let i = bee.trail.length - 1; i >= 0; i--) {
+        bee.trail[i].life -= dt * 0.72;
+        if (bee.trail[i].life <= 0) bee.trail.splice(i, 1);
+      }
+
+      if (bee.state === "orbitTree") {
+        bee.angle += dt * (1.2 + (idx % 3) * 0.25);
+        const orbitX = 385 + Math.cos(bee.angle) * (105 + (idx % 3) * 28);
+        const orbitY = 220 + Math.sin(bee.angle * 1.3) * 52;
+        steerBee(bee, orbitX, orbitY, 145, dt);
+
+        if (bloomed.length > 0 && bee.timer <= 0) {
+          // Choisir une fleur éclose
+          bee.target = bloomed[Math.floor(Math.random() * bloomed.length)];
+          bee.state = "toFlower";
+          bee.timer = 6;
+        }
+      } else if (bee.state === "toFlower") {
+        if (!bee.target || !bee.target.flower) {
+          bee.state = "orbitTree";
+          return;
+        }
+        const tx = bee.target.x;
+        const ty = bee.target.y - 24;
+        if (steerBee(bee, tx, ty, 165, dt) < 12) {
+          bee.state = "pollinate";
+          bee.timer = 1.3;
+          bee.hasPollen = true;
+        }
+      } else if (bee.state === "pollinate") {
+        // Vol stationnaire au-dessus de la fleur
+        const tx = bee.target.x + Math.sin(state.time * 6 + idx) * 6;
+        const ty = bee.target.y - 22 + Math.cos(state.time * 5 + idx) * 4;
+        bee.x += (tx - bee.x) * 8 * dt;
+        bee.y += (ty - bee.y) * 8 * dt;
+
+        if (bee.timer <= 0) {
+          state.pollinations++;
+          // Guider la première abeille vers les fougères !
+          if (!state.fernsCleared && !state.fernsHinted) {
+            state.fernsHinted = true;
+            bee.state = "toFern";
+            bee.timer = 4.2;
+            setWhisper("Suis l'abeille du regard jusqu'aux fougères… Touche les fougères pour ouvrir le passage !");
+          } else if (!state.fernsCleared && Math.random() < 0.32) {
+            bee.state = "toFern";
+            bee.timer = 3.2;
+          } else if (Math.random() < 0.25) {
+            // Montre une zone où l'on peut encore planter !
+            const emptySpots = state.spots.filter(s => s.unlocked && !s.flower && (s.zone !== "rive" || state.bridgeRepaired));
+            if (emptySpots.length > 0) {
+              bee.target = emptySpots[Math.floor(Math.random() * emptySpots.length)];
+              bee.state = "scout";
+              bee.timer = 2.6;
+            } else {
+              sendBeeToTree(bee);
+            }
+          } else {
+            sendBeeToTree(bee);
+          }
+        }
+      } else if (bee.state === "toFern") {
+        const fx = 665 + Math.sin(state.time * 2 + idx) * 20;
+        const fy = 445 + Math.cos(state.time * 2.5 + idx) * 22;
+        steerBee(bee, fx, fy, 155, dt);
+        if (bee.timer <= 0 || state.fernsCleared) {
+          sendBeeToTree(bee);
+        }
+      } else if (bee.state === "scout") {
+        if (!bee.target || bee.target.flower) {
+          sendBeeToTree(bee);
+          return;
+        }
+        steerBee(bee, bee.target.x, bee.target.y - 26, 150, dt);
+        if (bee.timer <= 0) {
+          sendBeeToTree(bee);
+        }
+      } else if (bee.state === "toTree") {
+        const b = bee.target;
+        if (!b) {
+          bee.state = "orbitTree";
+          return;
+        }
+        if (steerBee(bee, b.x, b.y - 10, 170, dt) < 14) {
+          if (bee.hasPollen && b.state === "blossom") {
+            b.state = "growing";
+            b.progress = 0.1;
+            addFloatingText(b.x, b.y - 15, "Nouveau fruit", "#ffe8a3");
+          } else if (bee.hasPollen && b.state === "growing") {
+            b.progress = Math.min(1, b.progress + 0.25);
+          }
+          bee.hasPollen = false;
+          bee.state = "orbitTree";
+          bee.timer = 2.5 + Math.random() * 3.5;
+        }
+      }
+    });
+
+    // 5. Particules d'ambiance saisonnières
+    const sType = SEASONS[state.seasonIndex].particleType;
+    state.ambientParticles.forEach(p => {
+      p.phase += dt * 1.8;
+      if (sType === "firefly") {
+        p.x += Math.cos(p.phase) * 14 * dt;
+        p.y += Math.sin(p.phase * 1.3) * 12 * dt;
+      } else {
+        p.x += (p.vx + Math.sin(p.phase) * 18) * dt;
+        p.y += p.vy * dt;
+      }
+      if (p.y > WORLD_H + 10) {
+        p.y = -10;
+        p.x = Math.random() * WORLD_W;
+      }
+      if (p.x < -20) p.x = WORLD_W + 20;
+      if (p.x > WORLD_W + 20) p.x = -20;
+    });
+
+    // 6. Textes flottants
+    for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = state.floatingTexts[i];
+      ft.life -= dt;
+      ft.y -= 24 * dt;
+      if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+    }
+  }
+
+  function sendBeeToTree(bee) {
+    const candidates = state.branches.filter(b => b.state === "blossom" || b.state === "growing");
+    if (candidates.length > 0) {
+      bee.target = candidates[Math.floor(Math.random() * candidates.length)];
+      bee.state = "toTree";
+    } else {
+      bee.state = "orbitTree";
+      bee.timer = 2.5 + Math.random() * 2.5;
+    }
+  }
+
+  function steerBee(bee, tx, ty, speed, dt) {
+    const dx = tx - bee.x;
+    const dy = ty - bee.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+      const wave = Math.sin(state.time * 7 + bee.id) * 22;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      bee.vx = nx * speed - ny * wave;
+      bee.vy = ny * speed + nx * wave;
+      bee.x += bee.vx * dt;
+      bee.y += bee.vy * dt;
+    }
+    return dist;
+  }
+
+  // =========================================================================
+  // RENDU DU PAYSAGE & PERSONNAGES
+  // =========================================================================
+  function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const scaleX = w / WORLD_W;
+    const scaleY = h / WORLD_H;
+    const scale = Math.min(scaleX, scaleY);
+    viewTransform.scale = scale;
+    viewTransform.offsetX = (w - WORLD_W * scale) * 0.5;
+    viewTransform.offsetY = (h - WORLD_H * scale) * 0.5;
+  }
+
+  function screenToWorld(sx, sy) {
+    return {
+      x: (sx - viewTransform.offsetX) / viewTransform.scale,
+      y: (sy - viewTransform.offsetY) / viewTransform.scale
+    };
+  }
+
+  function render() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const season = SEASONS[state.seasonIndex];
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Fond de scène harmonieux autour du cadre
+    ctx.fillStyle = season.bgTree;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+    ctx.translate(viewTransform.offsetX, viewTransform.offsetY);
+    ctx.scale(viewTransform.scale, viewTransform.scale);
+
+    // Clip au monde logique
+    ctx.beginPath();
+    ctx.rect(0, 0, WORLD_W, WORLD_H);
+    ctx.clip();
+
+    drawSkyAndForestBackdrop(season);
+    drawMeadowAndPaths(season);
+    drawPondAndStream(season);
+    drawBridge();
+    drawAmbientDecorByProgress(season);
+    drawPlantingSpots();
+    drawWildPlants();
+    drawGreatTree(season);
+    if (!state.fernsCleared) drawFernsBarrier(season);
+    drawRobot();
+    drawBees();
+    drawSeasonParticles(season);
+    drawFloatingTexts();
+
+    ctx.restore();
+  }
+
+  function drawSkyAndForestBackdrop(season) {
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, 390);
+    skyGrad.addColorStop(0, season.skyTop);
+    skyGrad.addColorStop(1, season.skyBottom);
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, WORLD_W, 420);
+
+    // Rayons de soleil doux à travers la forêt
+    ctx.save();
+    ctx.globalAlpha = season.id === "summer" ? 0.16 : 0.09;
+    ctx.fillStyle = "#fff4cf";
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      const bx = 180 + i * 310;
+      ctx.moveTo(bx, 0);
+      ctx.lineTo(bx + 120, 0);
+      ctx.lineTo(bx + 260, 520);
+      ctx.lineTo(bx + 60, 520);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Silhouettes d'arbres lointains
+    const bgTrunks = [70, 155, 250, 585, 675, 790, 960, 1140, 1265, 1345];
+    bgTrunks.forEach((tx, idx) => {
+      const h = 230 + (idx % 3) * 45;
+      ctx.fillStyle = season.bgTree;
+      ctx.globalAlpha = 0.42;
+      ctx.fillRect(tx - 11, 385 - h, 22, h + 15);
+      ctx.beginPath();
+      ctx.arc(tx, 385 - h, 62 + (idx % 2) * 18, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function drawMeadowAndPaths(season) {
+    // Sol principal
+    const grassGrad = ctx.createLinearGradient(0, 350, 0, WORLD_H);
+    grassGrad.addColorStop(0, season.grass1);
+    grassGrad.addColorStop(1, season.grass2);
+    ctx.fillStyle = grassGrad;
+    ctx.fillRect(0, 360, WORLD_W, WORLD_H - 360);
+
+    // Zone terre douce sous l'arbre
+    ctx.fillStyle = "rgba(134, 108, 72, 0.24)";
+    ctx.beginPath();
+    ctx.ellipse(385, 515, 215, 105, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sentier vers la mare une fois les fougères dégagées
+    if (state.fernsCleared) {
+      ctx.fillStyle = "rgba(182, 155, 114, 0.45)";
+      ctx.beginPath();
+      ctx.ellipse(675, 458, 95, 34, 0.05, 0, Math.PI * 2);
+      ctx.fill();
+      // Petites pierres du passage
+      [625, 665, 705].forEach((sx, i) => {
+        ctx.fillStyle = "#b7ad9a";
+        ctx.beginPath();
+        ctx.ellipse(sx, 456 + (i % 2) * 7, 14, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    // L'autre rive (herbe légèrement plus sauvage)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+    ctx.beginPath();
+    ctx.ellipse(1255, 500, 145, 185, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawPondAndStream(season) {
+    // Voile de brume sur la mare tant que les fougères ne sont pas dégagées
+    ctx.save();
+    if (!state.fernsCleared) {
+      ctx.globalAlpha = 0.55;
+    }
+
+    // Lit sablonneux / berge
+    ctx.fillStyle = "#8a8267";
+    ctx.beginPath();
+    ctx.ellipse(895, 480, 148, 128, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ruisseau vers la passerelle
+    ctx.fillStyle = season.water2;
+    ctx.beginPath();
+    ctx.moveTo(995, 355);
+    ctx.quadraticCurveTo(1065, 440, 1045, 690);
+    ctx.lineTo(1110, 690);
+    ctx.quadraticCurveTo(1120, 440, 1045, 355);
+    ctx.closePath();
+    ctx.fill();
+
+    // Mare principale
+    const waterGrad = ctx.createRadialGradient(875, 460, 20, 895, 480, 140);
+    waterGrad.addColorStop(0, season.water1);
+    waterGrad.addColorStop(1, season.water2);
+    ctx.fillStyle = waterGrad;
+    ctx.beginPath();
+    ctx.ellipse(895, 480, 134, 114, 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ondulations animées sur l'eau
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const r = ((state.time * 16 + i * 26) % 75) + 10;
+      ctx.globalAlpha = (!state.fernsCleared ? 0.2 : 0.35) * (1 - r / 90);
+      ctx.beginPath();
+      ctx.ellipse(885, 482, r * 1.15, r * 0.72, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Roseaux au bord
+    const reeds = [[785, 395], [795, 402], [970, 560], [982, 552]];
+    reeds.forEach(([rx, ry], idx) => {
+      const sway = Math.sin(state.time * 2 + idx) * 4;
+      ctx.strokeStyle = "#4d6b3c";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(rx, ry + 15);
+      ctx.quadraticCurveTo(rx + sway, ry - 15, rx + sway * 1.4, ry - 36);
+      ctx.stroke();
+    });
+
+    if (!state.fernsCleared) {
+      // Ombre forestière cachant un peu la mare avant découverte
+      ctx.fillStyle = "rgba(31, 45, 34, 0.42)";
+      ctx.fillRect(720, 330, 680, 490);
+    }
+    ctx.restore();
+  }
+
+  function drawBridge() {
+    const bx = 1005;
+    const by = 435;
+    const isHover = hoveredTarget && hoveredTarget.type === "bridge";
+
+    ctx.save();
+    if (!state.fernsCleared) ctx.globalAlpha = 0.45;
+
+    // Poutres latérales
+    ctx.fillStyle = "#6e4e32";
+    ctx.fillRect(bx, by, 118, 8);
+    ctx.fillRect(bx, by + 44, 118, 8);
+
+    if (state.bridgeRepaired) {
+      for (let i = 0; i < 7; i++) {
+        ctx.fillStyle = i % 2 === 0 ? "#9c7148" : "#8c633d";
+        ctx.fillRect(bx + 4 + i * 16, by + 3, 13, 46);
+      }
+      // Petits poteaux
+      ctx.fillStyle = "#593d25";
+      ctx.fillRect(bx + 4, by - 12, 7, 16);
+      ctx.fillRect(bx + 106, by - 12, 7, 16);
+    } else {
+      // Planches cassées / manquantes
+      [0, 1, 5, 6].forEach(i => {
+        ctx.save();
+        ctx.translate(bx + 10 + i * 16, by + 25);
+        ctx.rotate((i % 2 === 0 ? 0.14 : -0.18));
+        ctx.fillStyle = "#7a5738";
+        ctx.fillRect(-6, -22, 12, 42);
+        ctx.restore();
+      });
+
+      if (state.fernsCleared) {
+        ctx.strokeStyle = isHover ? "#ffe184" : "rgba(255, 232, 163, 0.55)";
+        ctx.lineWidth = isHover ? 3 : 2;
+        ctx.setLineDash([6, 5]);
+        ctx.strokeRect(bx - 6, by - 10, 130, 72);
+        ctx.setLineDash([]);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawAmbientDecorByProgress(season) {
+    const flowers = getFlowerCount();
+    // La progression se lit dans le paysage : champignons, jeunes pousses, lanternes d'ambre
+    if (flowers >= 3) {
+      drawTinyMushroom(200, 385);
+      drawTinyMushroom(218, 392);
+    }
+    if (flowers >= 6) {
+      // Jeune arbrisseau près de la clairière
+      ctx.fillStyle = "#5c432b";
+      ctx.fillRect(142, 575, 7, 36);
+      ctx.fillStyle = season.treeLeaf2;
+      ctx.beginPath();
+      ctx.arc(145, 565, 22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (flowers >= 10) {
+      // Lucioles/étincelles douces près du tronc
+      const glow = 0.25 + Math.sin(state.time * 2.5) * 0.1;
+      ctx.fillStyle = `rgba(255, 212, 110, ${glow})`;
+      ctx.beginPath();
+      ctx.arc(385, 445, 32, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawTinyMushroom(x, y) {
+    ctx.fillStyle = "#efe6d2";
+    ctx.fillRect(x - 2, y, 4, 9);
+    ctx.fillStyle = "#d97b48";
+    ctx.beginPath();
+    ctx.arc(x, y, 8, Math.PI, 0);
+    ctx.fill();
+  }
+
+  function drawGreatTree(season) {
+    const tx = 385;
+    const ty = 465;
+
+    // Ombre au sol
+    ctx.fillStyle = "rgba(34, 42, 26, 0.24)";
+    ctx.beginPath();
+    ctx.ellipse(tx, ty + 6, 130, 34, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Racines et tronc
+    ctx.fillStyle = "#684b33";
+    ctx.beginPath();
+    ctx.moveTo(tx - 65, ty + 10);
+    ctx.quadraticCurveTo(tx - 32, ty - 20, tx - 30, ty - 190);
+    ctx.lineTo(tx + 34, ty - 190);
+    ctx.quadraticCurveTo(tx + 36, ty - 20, tx + 72, ty + 10);
+    ctx.quadraticCurveTo(tx + 20, ty - 2, tx, ty + 6);
+    ctx.quadraticCurveTo(tx - 25, ty - 4, tx - 65, ty + 10);
+    ctx.fill();
+
+    // Branches maîtresses
+    ctx.strokeStyle = "#684b33";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 18;
+    ctx.beginPath();
+    ctx.moveTo(tx - 12, ty - 170);
+    ctx.quadraticCurveTo(tx - 75, ty - 200, tx - 115, ty - 175);
+    ctx.moveTo(tx + 12, ty - 170);
+    ctx.quadraticCurveTo(tx + 75, ty - 205, tx + 115, ty - 180);
+    ctx.stroke();
+
+    // Feuillage en couronnes souples
+    const puffs = [
+      [tx - 105, ty - 220, 74, season.treeLeaf1],
+      [tx + 105, ty - 225, 76, season.treeLeaf1],
+      [tx - 45, ty - 285, 86, season.treeLeaf2],
+      [tx + 55, ty - 280, 82, season.treeLeaf1],
+      [tx, ty - 335, 78, season.treeLeaf2],
+      [tx, ty - 235, 92, season.treeLeaf2]
+    ];
+    puffs.forEach(([px, py, pr, col], idx) => {
+      const sway = Math.sin(state.time * 1.2 + idx) * 2.5;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(px + sway, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Fleurs de l'arbre & fruits ambrés
+    state.branches.forEach(b => {
+      const sway = Math.sin(state.time * 2 + b.x * 0.02) * 2;
+      const bx = b.x + sway;
+      const by = b.y;
+
+      // Petite tige
+      ctx.strokeStyle = "#5b412b";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by - 10);
+      ctx.lineTo(bx, by + 6);
+      ctx.stroke();
+
+      if (b.state === "blossom") {
+        // Fleur d'arbre prête à être pollinisée
+        ctx.fillStyle = "#fff3dc";
+        for (let p = 0; p < 5; p++) {
+          const a = (p * Math.PI * 2) / 5;
+          ctx.beginPath();
+          ctx.arc(bx + Math.cos(a) * 6, by + Math.sin(a) * 6, 4.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#f2b84b";
+        ctx.beginPath();
+        ctx.arc(bx, by, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Fruit en croissance ou ambré mûr
+        const size = b.state === "ripe" ? 13 : 6 + b.progress * 6.5;
+        const isRipe = b.state === "ripe";
+        const isHover = hoveredTarget && hoveredTarget.type === "fruit" && hoveredTarget.obj === b;
+
+        if (isRipe) {
+          const pulse = 0.28 + Math.sin(state.time * 3.5 + b.x) * 0.1;
+          ctx.fillStyle = `rgba(255, 206, 94, ${isHover ? 0.55 : pulse})`;
+          ctx.beginPath();
+          ctx.arc(bx, by + 10, size + 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const fGrad = ctx.createRadialGradient(bx - 3, by + 6, 2, bx, by + 10, size);
+        fGrad.addColorStop(0, isRipe ? "#fff2a6" : "#d8e37b");
+        fGrad.addColorStop(0.55, isRipe ? "#f0a02b" : "#9dc255");
+        fGrad.addColorStop(1, isRipe ? "#b55d12" : "#6c9138");
+        ctx.fillStyle = fGrad;
+        ctx.beginPath();
+        ctx.arc(bx, by + 10, size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (isHover && isRipe) {
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(bx, by + 10, size + 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    });
+  }
+
+  function drawFernsBarrier(season) {
+    const isHover = hoveredTarget && hoveredTarget.type === "ferns";
+    const fx = 665;
+    const fy = 450;
+
+    if (state.fernsHinted || isHover) {
+      const pulse = 0.25 + Math.sin(state.time * 4) * 0.12;
+      ctx.fillStyle = `rgba(255, 224, 130, ${isHover ? 0.45 : pulse})`;
+      ctx.beginPath();
+      ctx.ellipse(fx, fy, 68, 86, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Touffes de fougères denses
+    const fronds = [
+      [640, 480, -0.45], [660, 495, -0.15], [685, 490, 0.2], [705, 475, 0.48],
+      [645, 425, -0.5], [670, 410, 0.05], [698, 425, 0.42]
+    ];
+    fronds.forEach(([x, y, ang], idx) => {
+      const sway = Math.sin(state.time * 2 + idx) * 0.05;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(ang + sway);
+      ctx.fillStyle = idx % 2 === 0 ? "#436e3b" : "#558749";
+      ctx.beginPath();
+      ctx.ellipse(0, -34, 14, 40, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#76a866";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -64);
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  function drawPlantingSpots() {
+    state.spots.forEach(s => {
+      if (!s.unlocked) return;
+      if (s.zone === "rive" && !state.bridgeRepaired) return;
+
+      if (!s.flower) {
+        const isHover = hoveredTarget && hoveredTarget.type === "spot" && hoveredTarget.obj === s;
+        const canPlant = state.seeds > 0;
+        const pulse = canPlant ? 0.45 + Math.sin(state.time * 4 + s.x) * 0.2 : 0.25;
+
+        if (s.zone === "eau") {
+          ctx.fillStyle = isHover ? "rgba(150, 220, 140, 0.75)" : `rgba(116, 178, 110, ${pulse})`;
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, 17, 11, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "rgba(115, 86, 53, 0.52)";
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, 17, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (canPlant || isHover) {
+            ctx.strokeStyle = isHover ? "#fff4b8" : `rgba(255, 226, 130, ${pulse})`;
+            ctx.lineWidth = isHover ? 2.5 : 1.5;
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, 20, 11, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      } else {
+        drawFlower(s);
+      }
+    });
+  }
+
+  function drawFlower(spot) {
+    const f = spot.flower;
+    const sp = SPECIES[f.species];
+    const scale = f.bloom;
+    const sway = Math.sin(state.time * 2.2 + f.swayOffset) * 3 * scale;
+    const x = spot.x;
+    const y = spot.y;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    if (spot.zone === "eau") {
+      // Feuille de nénuphar
+      ctx.fillStyle = "#5c9e58";
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 20 * scale, 12 * scale, 0.15, 0.3, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Tige
+      ctx.strokeStyle = "#4c7c41";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 2);
+      ctx.quadraticCurveTo(sway * 0.4, -14 * scale, sway, -25 * scale);
+      ctx.stroke();
+
+      // Petites feuilles
+      ctx.fillStyle = "#5d914e";
+      ctx.beginPath();
+      ctx.ellipse(-7 * scale, -8 * scale, 7 * scale, 3.5 * scale, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(7 * scale, -11 * scale, 7 * scale, 3.5 * scale, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const headX = spot.zone === "eau" ? 0 : sway;
+    const headY = spot.zone === "eau" ? -3 * scale : -27 * scale;
+
+    // Halo doux pour la campanule lunaire en hiver/automne
+    if (f.species === "campanule" && f.bloom >= 1) {
+      ctx.fillStyle = "rgba(170, 215, 255, 0.25)";
+      ctx.beginPath();
+      ctx.arc(headX, headY, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pétales
+    ctx.fillStyle = sp.petalColor;
+    for (let i = 0; i < sp.petals; i++) {
+      const a = (i * Math.PI * 2) / sp.petals + state.time * 0.12;
+      const px = headX + Math.cos(a) * 7.5 * scale;
+      const py = headY + Math.sin(a) * 7.5 * scale;
+      ctx.beginPath();
+      ctx.arc(px, py, 5.4 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Cœur de la fleur
+    ctx.fillStyle = sp.centerColor;
+    ctx.beginPath();
+    ctx.arc(headX, headY, 4.5 * scale, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawWildPlants() {
+    if (!state.fernsCleared) return;
+    state.wildPlants.forEach(wp => {
+      if (wp.collected) return;
+      const sp = SPECIES[wp.species];
+      const isHover = hoveredTarget && hoveredTarget.type === "wild" && hoveredTarget.obj === wp;
+
+      ctx.save();
+      ctx.translate(wp.x, wp.y);
+
+      if (state.bridgeRepaired) {
+        const pulse = 0.25 + Math.sin(state.time * 3.5 + wp.x) * 0.12;
+        ctx.fillStyle = `rgba(255, 240, 170, ${isHover ? 0.55 : pulse})`;
+        ctx.beginPath();
+        ctx.arc(0, -14, 24, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Touffe sauvage
+      ctx.strokeStyle = "#487542";
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(0, 4);
+      ctx.lineTo(-4, -22);
+      ctx.moveTo(0, 4);
+      ctx.lineTo(5, -24);
+      ctx.stroke();
+
+      ctx.fillStyle = sp.petalColor;
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI * 2) / 6;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * 8, -23 + Math.sin(a) * 8, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = sp.centerColor;
+      ctx.beginPath();
+      ctx.arc(0, -23, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    });
+  }
+
+  function drawRobot() {
+    const r = state.robot;
+    const bounce = Math.abs(Math.sin(r.bob)) * 4;
+    const working = r.action ? Math.sin(state.time * 18) * 3 : 0;
+
+    ctx.save();
+    ctx.translate(r.x, r.y - bounce);
+
+    // Ombre
+    ctx.fillStyle = "rgba(25, 30, 20, 0.26)";
+    ctx.beginPath();
+    ctx.ellipse(0, 14 + bounce, 18, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Petite roue / chenille
+    ctx.fillStyle = "#4a433b";
+    ctx.beginPath();
+    ctx.roundRect(-13, 6, 26, 9, 4);
+    ctx.fill();
+
+    // Sacoche de graines ambrées
+    ctx.fillStyle = state.seeds > 0 ? "#e89a2c" : "#8e7d67";
+    ctx.beginPath();
+    ctx.arc(-13 * r.facing, -4, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Corps arrondi du robot
+    ctx.fillStyle = "#f2ead7";
+    ctx.strokeStyle = "#6e5d49";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(-15, -26, 30, 33, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // Bandeau cuivré
+    ctx.fillStyle = "#c98b49";
+    ctx.fillRect(-14, -7, 28, 4);
+
+    // Visière sombre
+    ctx.fillStyle = "#2d2a26";
+    ctx.beginPath();
+    ctx.roundRect(-11 + r.facing * 2, -22, 22, 12, 6);
+    ctx.fill();
+
+    // Yeux lumineux expressifs
+    const blinking = r.blinkTimer < 0;
+    ctx.fillStyle = "#ffd670";
+    if (blinking) {
+      ctx.fillRect(-7 + r.facing * 2, -16, 4, 1.8);
+      ctx.fillRect(3 + r.facing * 2, -16, 4, 1.8);
+    } else {
+      ctx.beginPath();
+      ctx.arc(-5 + r.facing * 2, -16, 2.5, 0, Math.PI * 2);
+      ctx.arc(5 + r.facing * 2, -16, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Antenne petite pousse
+    ctx.strokeStyle = "#5f8a4e";
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(0, -26);
+    ctx.quadraticCurveTo(working, -34, 2 + working, -38);
+    ctx.stroke();
+    ctx.fillStyle = "#7cb562";
+    ctx.beginPath();
+    ctx.ellipse(6 + working, -38, 5, 3, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawBees() {
+    state.bees.forEach(bee => {
+      // Traînée dorée montrant les trajets
+      if (bee.trail.length > 1) {
+        for (let i = 1; i < bee.trail.length; i++) {
+          const p0 = bee.trail[i - 1];
+          const p1 = bee.trail[i];
+          ctx.strokeStyle = bee.hasPollen
+            ? `rgba(255, 222, 112, ${p1.life * 0.55})`
+            : `rgba(255, 250, 225, ${p1.life * 0.3})`;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+      }
+
+      // Corps de l'abeille
+      ctx.save();
+      ctx.translate(bee.x, bee.y);
+      const wingY = Math.sin(bee.wingPhase) * 3.5;
+
+      // Ailes
+      ctx.fillStyle = "rgba(245, 252, 255, 0.85)";
+      ctx.beginPath();
+      ctx.ellipse(-2, -4 + wingY * 0.3, 5, 3.2, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(2, -4 - wingY * 0.3, 5, 3.2, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Abdomen doré + rayure
+      ctx.fillStyle = "#f2b830";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6.2, 4.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#36291a";
+      ctx.fillRect(-1.5, -4, 2.5, 8);
+
+      if (bee.hasPollen) {
+        ctx.fillStyle = "#fff199";
+        ctx.beginPath();
+        ctx.arc(0, 4.5, 2.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+  }
+
+  function drawSeasonParticles(season) {
+    const type = season.particleType;
+    state.ambientParticles.forEach(p => {
+      ctx.save();
+      if (type === "petal") {
+        ctx.fillStyle = "rgba(255, 232, 236, 0.72)";
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.phase);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size, p.size * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (type === "firefly") {
+        const a = 0.35 + Math.sin(p.phase * 2) * 0.35;
+        ctx.fillStyle = `rgba(255, 234, 130, ${a})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (type === "leaf") {
+        ctx.fillStyle = p.phase % 2 > 1 ? "rgba(218, 122, 52, 0.78)" : "rgba(232, 168, 68, 0.78)";
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.phase);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size * 1.3, p.size * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (type === "snow") {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.65, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+  }
+
+  function drawFloatingTexts() {
+    ctx.font = "bold 14px Georgia, serif";
+    ctx.textAlign = "center";
+    state.floatingTexts.forEach(ft => {
+      ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+      ctx.fillStyle = "rgba(25, 22, 18, 0.55)";
+      ctx.fillText(ft.text, ft.x + 1, ft.y + 1);
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, ft.x, ft.y);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // =========================================================================
+  // UI, SURVOL & CARNET BOTANIQUE
+  // =========================================================================
+  const elSeasonDot = document.getElementById("season-dot");
+  const elSeasonLabel = document.getElementById("season-label");
+  const elSeedCount = document.getElementById("seed-count");
+  const elFlowerCount = document.getElementById("flower-count");
+  const elBeeCount = document.getElementById("bee-count");
+  const elWhisper = document.getElementById("whisper-box");
+  const elSeedBar = document.getElementById("seed-bar");
+  const elCarnetBadge = document.getElementById("carnet-badge");
+  const elCarnetModal = document.getElementById("carnet-modal");
+
+  function setWhisper(text) {
+    elWhisper.textContent = text;
+    elWhisper.classList.remove("hidden");
+  }
+
+  function updateUI() {
+    const season = SEASONS[state.seasonIndex];
+    elSeasonDot.style.background = season.color;
+    elSeasonLabel.textContent = season.name;
+    elSeedCount.textContent = state.seeds;
+    elFlowerCount.textContent = getFlowerCount();
+    elBeeCount.textContent = state.bees.length;
+
+    elCarnetBadge.classList.toggle("visible", state.carnetBadge);
+
+    if (state.discoveredSpecies.length > 1) {
+      elSeedBar.style.display = "flex";
+      elSeedBar.innerHTML = "";
+      state.discoveredSpecies.forEach(id => {
+        const sp = SPECIES[id];
+        const btn = document.createElement("button");
+        btn.className = "seed-chip" + (state.selectedSpecies === id ? " active" : "");
+        btn.innerHTML = `<span class="seed-swatch" style="background:${sp.petalColor}"></span><span>${sp.name}</span>`;
+        btn.onclick = () => {
+          state.selectedSpecies = id;
+          updateUI();
+        };
+        elSeedBar.appendChild(btn);
+      });
+    } else {
+      elSeedBar.style.display = "none";
+    }
+  }
+
+  function renderCarnet() {
+    const places = [
+      {
+        name: "🌳 Le Premier Arbre",
+        unlocked: true,
+        desc: "Ses branches portent des fruits ambrés dont les graines lancent ton jardin."
+      },
+      {
+        name: "🌿 Passage des Fougères",
+        unlocked: state.fernsCleared,
+        desc: state.fernsCleared ? "Un sentier dégagé mène vers l'est de la forêt." : "Un fourré dense bloque encore ce chemin."
+      },
+      {
+        name: "💧 La Mare",
+        unlocked: state.fernsCleared,
+        desc: state.fernsCleared ? "Ses berges accueillent des iris et des nénuphars." : "À découvrir derrière les fougères."
+      },
+      {
+        name: "🌉 La Passerelle & L'Autre Rive",
+        unlocked: state.bridgeRepaired,
+        desc: state.bridgeRepaired ? "Réparée par le robot, elle ouvre l'accès aux plantes sauvages." : "Une passerelle abîmée franchit le ruisseau."
+      }
+    ];
+
+    const placesGrid = document.getElementById("places-grid");
+    placesGrid.innerHTML = "";
+    places.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "place-card" + (p.unlocked ? "" : " locked");
+      div.innerHTML = `<strong>${p.name}</strong><span>${p.desc}</span>`;
+      placesGrid.appendChild(div);
+    });
+
+    const plantsGrid = document.getElementById("plants-grid");
+    plantsGrid.innerHTML = "";
+    Object.values(SPECIES).forEach(sp => {
+      const unlocked = state.discoveredSpecies.includes(sp.id);
+      const card = document.createElement("div");
+      card.className = "plant-card " + (unlocked ? "unlocked" : "locked");
+
+      const svgFlower = `
+        <svg width="34" height="34" viewBox="0 0 34 34">
+          <line x1="17" y1="31" x2="17" y2="14" stroke="#4f7e43" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="17" cy="8" r="4" fill="${sp.petalColor}"/>
+          <circle cx="23" cy="13" r="4" fill="${sp.petalColor}"/>
+          <circle cx="11" cy="13" r="4" fill="${sp.petalColor}"/>
+          <circle cx="13" cy="19" r="4" fill="${sp.petalColor}"/>
+          <circle cx="21" cy="19" r="4" fill="${sp.petalColor}"/>
+          <circle cx="17" cy="14" r="3.5" fill="${sp.centerColor}"/>
+        </svg>
+      `;
+
+      card.innerHTML = `
+        <div class="plant-icon">${unlocked ? svgFlower : "?"}</div>
+        <div class="plant-info">
+          <h4>${unlocked ? sp.name : "Espèce à découvrir"}</h4>
+          <p>${unlocked ? sp.desc : `Cherche du côté de : ${sp.zoneLabel}`}</p>
+          <span class="plant-tag">${unlocked ? sp.bonus : "Non répertoriée"}</span>
+        </div>
+      `;
+
+      if (unlocked) {
+        card.onclick = () => {
+          state.selectedSpecies = sp.id;
+          elCarnetModal.classList.remove("open");
+          updateUI();
+          setWhisper(`Graine sélectionnée : ${sp.name}. Touche un emplacement pour la semer.`);
+        };
+      }
+      plantsGrid.appendChild(card);
+    });
+  }
+
+  function detectHover(wx, wy) {
+    hoveredTarget = null;
+    for (const b of state.branches) {
+      if (b.state === "ripe" && Math.hypot(wx - b.x, wy - (b.y + 10)) < 32) {
+        hoveredTarget = { type: "fruit", obj: b };
+        return;
+      }
+    }
+    if (!state.fernsCleared && wx > 605 && wx < 735 && wy > 365 && wy < 540) {
+      hoveredTarget = { type: "ferns" };
+      return;
+    }
+    if (state.fernsCleared && !state.bridgeRepaired && wx > 990 && wx < 1130 && wy > 395 && wy < 515) {
+      hoveredTarget = { type: "bridge" };
+      return;
+    }
+    if (state.bridgeRepaired) {
+      for (const wp of state.wildPlants) {
+        if (!wp.collected && Math.hypot(wx - wp.x, wy - wp.y) < 38) {
+          hoveredTarget = { type: "wild", obj: wp };
+          return;
+        }
+      }
+    }
+    for (const s of state.spots) {
+      if (!s.unlocked || s.flower) continue;
+      if (s.zone === "rive" && !state.bridgeRepaired) continue;
+      if (Math.hypot(wx - s.x, wy - s.y) < 34) {
+        hoveredTarget = { type: "spot", obj: s };
+        return;
+      }
+    }
+  }
+
+  // Événements
+  canvas.addEventListener("pointermove", e => {
+    const pt = screenToWorld(e.clientX, e.clientY);
+    detectHover(pt.x, pt.y);
+    canvas.style.cursor = hoveredTarget ? "pointer" : "default";
+  });
+
+  canvas.addEventListener("pointerdown", e => {
+    const pt = screenToWorld(e.clientX, e.clientY);
+    handleWorldClick(pt.x, pt.y);
+  });
+
+  document.getElementById("btn-carnet").onclick = () => {
+    state.carnetBadge = false;
+    renderCarnet();
+    updateUI();
+    elCarnetModal.classList.add("open");
+  };
+
+  document.getElementById("btn-close-carnet").onclick = () => {
+    elCarnetModal.classList.remove("open");
+  };
+
+  elCarnetModal.addEventListener("click", e => {
+    if (e.target === elCarnetModal) elCarnetModal.classList.remove("open");
+  });
+
+  document.getElementById("btn-sound").onclick = e => {
+    Sound.enabled = !Sound.enabled;
+    e.currentTarget.textContent = Sound.enabled ? "🔊" : "🔇";
+  };
+
+  document.getElementById("btn-reset").onclick = () => {
+    try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
+    state = createInitialState();
+    updateUI();
+    setWhisper("Cueille un fruit ambré sur une branche basse de l’arbre.");
+  };
+
+  window.addEventListener("resize", resizeCanvas);
+
+  // =========================================================================
+  // BOUCLE PRINCIPALE
+  // =========================================================================
+  function loop(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    updateSimulation(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  loadGame();
+  resizeCanvas();
+  updateUI();
+  if (state.guideStep === 0 && getFlowerCount() === 0) {
+    setWhisper("Cueille un fruit ambré sur une branche basse de l’arbre.");
+  } else if (!state.fernsCleared) {
+    setWhisper("Fais éclore des fleurs et observe les trajets des abeilles vers les fougères.");
+  } else if (!state.bridgeRepaired) {
+    setWhisper("Fleuris la berge de la mare ou répare la passerelle pour atteindre l'autre rive.");
+  } else {
+    setWhisper("La clairière vit à ton rythme au fil des saisons.");
+  }
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
