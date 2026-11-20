@@ -2,6 +2,8 @@
 
 Un jeu mobile botanique et apicole paisible développé en **Kotlin** & **Jetpack Compose**, inspiré du prototype web [La clairière aux abeilles.html](./La%20clairi%C3%A8re%20aux%20abeilles.html).
 
+> **Télécharger l'APK Android** : [LaClairiereAuxAbeilles-v1.0.0.apk](https://github.com/cedricboucard/La-Clairiere-aux-Abeilles/releases/latest) (section *Releases*)
+
 Accompagne un petit robot jardinier au pied du Grand Arbre : récolte des fruits ambrés, sème des fleurs au fil des saisons, suis le vol des abeilles pour découvrir la mare et répare la passerelle vers l'autre rive.
 
 ---
